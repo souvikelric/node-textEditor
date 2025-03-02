@@ -27,6 +27,8 @@ function handleKeyPress(data: Buffer) {
   const key = data.toString("utf-8");
   switch (key) {
     case "\x03": // Ctrl+C
+      console.log();
+      console.clear();
       process.exit();
     case "\x1B[A": // Up arrow
       if (cursor.row > 0) cursor.row--;
@@ -68,7 +70,7 @@ function handleKeyPress(data: Buffer) {
 
 function drawScreen() {
   console.clear();
-  buffer.forEach((line, i) => {
+  buffer.slice(0, rows - 1).forEach((line, i) => {
     if (i === cursor.row) {
       const beforeCursor = line.slice(0, cursor.col);
       const cursorChar = line[cursor.col] || " ";
@@ -80,5 +82,12 @@ function drawScreen() {
       process.stdout.write(`${line}\n`);
     }
   });
-  process.stdout.write(`\n${chalk.gray("Ctrl+C to exit")}`);
+  process.stdout.cursorTo(0, rows - 1);
+  process.stdout.clearLine(0);
+
+  const statusText = ` Ctrl+C to exit | Row: ${cursor.row + 1}, Col: ${
+    cursor.col + 1
+  } `;
+  const paddedStatusBar = statusText.padEnd(cols); // Fill the rest of the line with spaces
+  process.stdout.write(chalk.bgRgb(50, 110, 180)(paddedStatusBar));
 }
