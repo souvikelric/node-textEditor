@@ -3,9 +3,20 @@ import readLine from "node:readline";
 import chalk from "chalk";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { EventEmitter } from "node:events";
 
+//declare any reuired types
+type cursorType = {
+  row: number;
+  col: number;
+};
+let mode = "editing";
 const rows = process.stdout.rows;
 const cols = process.stdout.columns;
+let statusText: string;
+
+const args = process.argv.slice(2);
+const fileName = args.length > 0 ? args[0] : "undefined";
 
 const rl = readLine.createInterface({
   input: process.stdin,
@@ -14,22 +25,28 @@ const rl = readLine.createInterface({
 });
 
 let buffer = [""]; // buffer will contain all the text that we need to print out
-let cursor = { row: 0, col: 0 }; // object that will contain the current cursor position
+let cursor: cursorType = { row: 0, col: 0 }; // object that will contain the current cursor position
 
 process.stdin.setRawMode(true); // to get real time input from the terminal
 console.clear();
-// call drawScreen function
+
 drawScreen();
 
 process.stdin.on("data", handleKeyPress); // run the function handleKeyPress for every keypress or data input in the terminal
+// process.stdin.resume();
+process.on("SIGINT", () => {
+  console.log("No quit from event");
+});
 
 function handleKeyPress(data: Buffer) {
   const key = data.toString("utf-8");
+  console.log(key);
+  if (key === "\x03") {
+    // console.log("No quit from fn");
+    process.stdin.resume();
+    return;
+  }
   switch (key) {
-    case "\x03": // Ctrl+C
-      console.log();
-      console.clear();
-      process.exit();
     case "\x1B[A": // Up arrow
       if (cursor.row > 0) cursor.row--;
       break;
@@ -71,11 +88,21 @@ function handleKeyPress(data: Buffer) {
 function getWordNumber(buf: string[]): number {
   let words: number = 0;
   buf.forEach((b) => {
-    for (let i = 0; i < b.length; i++) {
-      if (b[i] === " ") words++;
+    words++;
+    if (b === "") {
+      words--;
+    } else {
+      for (let i = 0; i < b.length; i++) {
+        if (b[i] === " ") words++;
+      }
     }
   });
   return words;
+}
+
+function updateStatusBar(text: string) {
+  const paddedStatusBar = text.padEnd(cols); // Fill the rest of the line with spaces
+  process.stdout.write(chalk.bgRgb(50, 110, 180)(paddedStatusBar));
 }
 
 function drawScreen() {
@@ -94,12 +121,14 @@ function drawScreen() {
   });
   process.stdout.cursorTo(0, rows - 1);
   process.stdout.clearLine(0);
-
   const lines = buffer.length;
   const words = getWordNumber(buffer);
-  const statusText = ` Ctrl+C to exit | Lines: ${lines} | Words: ${words} | Row: ${
-    cursor.row + 1
-  }, Col: ${cursor.col + 1} `;
-  const paddedStatusBar = statusText.padEnd(cols); // Fill the rest of the line with spaces
-  process.stdout.write(chalk.bgRgb(50, 110, 180)(paddedStatusBar));
+  if (mode === "editing") {
+    statusText = `Lines: ${lines} | Words: ${words} | Row: ${
+      cursor.row + 1
+    }, Col: ${cursor.col + 1} | Ctrl+C to exit `;
+  } else {
+    statusText = fileName;
+  }
+  updateStatusBar(statusText);
 }
