@@ -68,6 +68,16 @@ function handleKeyPress(data: Buffer) {
   drawScreen();
 }
 
+function getWordNumber(buf: string[]): number {
+  let words: number = 0;
+  buf.forEach((b) => {
+    for (let i = 0; i < b.length; i++) {
+      if (b[i] === " ") words++;
+    }
+  });
+  return words;
+}
+
 function drawScreen() {
   console.clear();
   buffer.slice(0, rows - 1).forEach((line, i) => {
@@ -85,9 +95,11 @@ function drawScreen() {
   process.stdout.cursorTo(0, rows - 1);
   process.stdout.clearLine(0);
 
-  const statusText = ` Ctrl+C to exit | Row: ${cursor.row + 1}, Col: ${
-    cursor.col + 1
-  } `;
+  const lines = buffer.length;
+  const words = getWordNumber(buffer);
+  const statusText = ` Ctrl+C to exit | Lines: ${lines} | Words: ${words} | Row: ${
+    cursor.row + 1
+  }, Col: ${cursor.col + 1} `;
   const paddedStatusBar = statusText.padEnd(cols); // Fill the rest of the line with spaces
   process.stdout.write(chalk.bgRgb(50, 110, 180)(paddedStatusBar));
 }
