@@ -1,0 +1,22 @@
+{
+  "name": "node-texteditor",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "watch": "tsc --watch",
+    "dev": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "node",
+    "text-editor"
+  ],
+  "author": "Souvik Roy",
+  "license": "ISC",
+  "description": "A in terminal text editor using node",
+  "devDependencies": {
+    "@types/node": "^22.13.8",
+    "typescript": "^5.8.2"
+  }
+}
