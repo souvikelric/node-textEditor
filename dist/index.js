@@ -20,7 +20,9 @@ drawScreen();
 process.stdin.on("data", handleKeyPress); // run the function handleKeyPress for every keypress or data input in the terminal
 // process.stdin.resume();
 process.on("SIGINT", () => {
-    console.log("No quit from event");
+    //   console.log("No quit from event");
+    process.stdin.resume();
+    drawScreen();
 });
 function handleKeyPress(data) {
     const key = data.toString("utf-8");
@@ -28,6 +30,8 @@ function handleKeyPress(data) {
     if (key === "\x03") {
         // console.log("No quit from fn");
         process.stdin.resume();
+        mode = "saving";
+        drawScreen();
         return;
     }
     switch (key) {
@@ -113,7 +117,7 @@ function drawScreen() {
         statusText = `Lines: ${lines} | Words: ${words} | Row: ${cursor.row + 1}, Col: ${cursor.col + 1} | Ctrl+C to exit `;
     }
     else {
-        statusText = fileName;
+        statusText = "In Save Mode";
     }
     updateStatusBar(statusText);
 }
