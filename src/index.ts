@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import readLine from "node:readline";
-import chalk from "chalk";
+import chalk, { ChalkInstance } from "chalk";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { EventEmitter } from "node:events";
@@ -14,6 +14,7 @@ let mode = "editing";
 const rows = process.stdout.rows;
 const cols = process.stdout.columns;
 let statusText: string;
+let statusColor: ChalkInstance;
 
 const args = process.argv.slice(2);
 const fileName = args.length > 0 ? args[0] : "undefined";
@@ -36,55 +37,93 @@ process.stdin.on("data", handleKeyPress); // run the function handleKeyPress for
 // process.stdin.resume();
 process.on("SIGINT", () => {
   //   console.log("No quit from event");
-  process.stdin.resume();
-  drawScreen();
+  if (mode === "saving") {
+    console.clear();
+    process.exit();
+  } else {
+    process.stdin.resume();
+    drawScreen();
+  }
 });
+
+async function saveFile(filePath: string) {
+  updateStatusBar("Pressed Y", chalk.green);
+  try {
+    await fs.writeFile(filePath, buffer.join("\n"), { encoding: "utf-8" });
+    console.clear();
+    console.log(`File saved as: ${filePath}`);
+    process.exit(0);
+  } catch (err) {
+    console.error("Failed to save file:", err);
+    mode = "editing"; // Return to editing mode if saving fails
+    drawScreen();
+  }
+}
 
 function handleKeyPress(data: Buffer) {
   const key = data.toString("utf-8");
-  console.log(key);
+  //   if (mode === "saving" && key === "y") {
+  //     if (fileName !== "undefined") {
+  //       saveFile(
+  //         path.join(
+  //           process.cwd(),
+  //           fileName.endsWith(".txt") ? fileName : fileName + ".txt"
+  //         )
+  //       );
+  //       process.stdin.setRawMode(false);
+  //       return;
+  //     } else {
+  //       mode = "editing";
+  //     }
+  //     return;
+  //   }
   if (key === "\x03") {
-    // console.log("No quit from fn");
     process.stdin.resume();
     mode = "saving";
     drawScreen();
-    return;
+    //return;
   }
-  switch (key) {
-    case "\x1B[A": // Up arrow
-      if (cursor.row > 0) cursor.row--;
-      break;
-    case "\x1B[B": // Down arrow
-      if (cursor.row < buffer.length - 1) cursor.row++;
-      break;
-    case "\x1B[D": // Left arrow:
-      if (cursor.col > 0) cursor.col--;
-      break;
-    case "\x1B[C": // Right arrow
-      if (cursor.col < buffer[cursor.row].length - 1) cursor.col++;
-      break;
-    case "\r": //case for pressing Enter key
-      const currentLine = buffer[cursor.row];
-      const beforeCursor = currentLine.slice(0, cursor.col);
-      const afterCursor = currentLine.slice(cursor.col);
-      buffer[cursor.row] = beforeCursor;
-      buffer.splice(cursor.row + 1, 0, afterCursor);
-      cursor.row++;
-      cursor.col = 0;
-      break;
-    case "\x7F": // Backspace
-      if (cursor.col > 0) {
+  if (mode === "editing") {
+    switch (key) {
+      case "\x1B[A": // Up arrow
+        if (cursor.row > 0) cursor.row--;
+        break;
+      case "\x1B[B": // Down arrow
+        if (cursor.row < buffer.length - 1) cursor.row++;
+        break;
+      case "\x1B[D": // Left arrow:
+        if (cursor.col > 0) cursor.col--;
+        break;
+      case "\x1B[C": // Right arrow
+        if (cursor.col < buffer[cursor.row].length - 1) cursor.col++;
+        break;
+      case "\r": //case for pressing Enter key
+        const currentLine = buffer[cursor.row];
+        const beforeCursor = currentLine.slice(0, cursor.col);
+        const afterCursor = currentLine.slice(cursor.col);
+        buffer[cursor.row] = beforeCursor;
+        buffer.splice(cursor.row + 1, 0, afterCursor);
+        cursor.row++;
+        cursor.col = 0;
+        break;
+      case "\x7F": // Backspace
+        if (cursor.col > 0) {
+          const line = buffer[cursor.row];
+          buffer[cursor.row] =
+            line.slice(0, cursor.col - 1) + line.slice(cursor.col);
+          cursor.col--;
+        }
+        break;
+      default:
         const line = buffer[cursor.row];
         buffer[cursor.row] =
-          line.slice(0, cursor.col - 1) + line.slice(cursor.col);
-        cursor.col--;
-      }
-      break;
-    default:
-      const line = buffer[cursor.row];
-      buffer[cursor.row] =
-        line.slice(0, cursor.col) + key + line.slice(cursor.col);
-      cursor.col++;
+          line.slice(0, cursor.col) + key + line.slice(cursor.col);
+        cursor.col++;
+    }
+  } else {
+    if (key === "y") {
+      updateStatusBar("Pressed Y", chalk.green);
+    }
   }
   drawScreen();
 }
@@ -104,9 +143,9 @@ function getWordNumber(buf: string[]): number {
   return words;
 }
 
-function updateStatusBar(text: string) {
+function updateStatusBar(text: string, color: ChalkInstance) {
   const paddedStatusBar = text.padEnd(cols); // Fill the rest of the line with spaces
-  process.stdout.write(chalk.bgRgb(50, 110, 180)(paddedStatusBar));
+  process.stdout.write(color(paddedStatusBar));
 }
 
 function drawScreen() {
@@ -131,8 +170,15 @@ function drawScreen() {
     statusText = `Lines: ${lines} | Words: ${words} | Row: ${
       cursor.row + 1
     }, Col: ${cursor.col + 1} | Ctrl+C to exit `;
+    statusColor = chalk.bgRgb(50, 110, 180);
   } else {
     statusText = "In Save Mode";
+    if (fileName !== "undefined") {
+      statusText += ` | Save the file as ${fileName}.txt? ${mode}`;
+    } else {
+      statusText += ` | No file name mentioned | Ctrl + C again to quit`;
+    }
+    statusColor = chalk.bgRgb(200, 0, 10);
   }
-  updateStatusBar(statusText);
+  updateStatusBar(statusText, statusColor);
 }
