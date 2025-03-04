@@ -15,10 +15,12 @@
   "license": "ISC",
   "description": "A in terminal text editor using node",
   "devDependencies": {
+    "@types/blessed": "^0.1.25",
     "@types/node": "^22.13.8",
     "typescript": "^5.8.2"
   },
   "dependencies": {
+    "blessed": "^0.1.81",
     "chalk": "^5.4.1"
   }
 }
