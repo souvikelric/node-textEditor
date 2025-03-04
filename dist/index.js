@@ -69,11 +69,11 @@ screen.key(["i"], () => {
     if (!commandMode) {
         isInsertMode = true;
         screen.program.showCursor();
-        buffer = [];
+        buffer = [""];
         cursorX = 0;
         cursorY = 0;
         statusBar.setContent("INSERT");
-        screen.render();
+        render();
     }
 });
 // Exit insert mode (ESC key)
